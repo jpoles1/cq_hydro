@@ -13,7 +13,7 @@ class Netcup:
     def __post_init__(self):
         #Post-init processing
         self.net_h
-    def netcup(self):
+    def make(self):
         #Create outer profile
         c = cq.Workplane("XY").circle(self.net_bot_diam/2).workplane(offset=self.net_h).circle(self.net_top_diam/2).loft()
         c = c.faces(">Z").circle(self.net_top_brim_diam/2).extrude(self.wall_thick)
@@ -36,4 +36,4 @@ class Netcup:
 
         return c
 
-show_object(Netcup().netcup())
+#show_object(Netcup().make())
