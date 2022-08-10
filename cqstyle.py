@@ -1,7 +1,6 @@
 from dataclasses import dataclass, asdict
 from cadquery import Workplane, exporters
 import cadquery as cq
-from typing import Any
 
 @dataclass
 class StylishPart:

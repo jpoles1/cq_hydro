@@ -1,11 +1,12 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
+from cqstyle import StylishPart
 import math
 import cadquery as cq
 from locking_netcup import LockingNetcup
 from mason_thread import MasonThread
 
 @dataclass
-class Floor:
+class Floor(StylishPart):
     tower_od: float = 80
     wall_thick: float = 2
     lip_thick: float = 3
@@ -19,15 +20,6 @@ class Floor:
         self.tower_id = self.tower_od - 2*self.wall_thick
         self.lip_od = self.tower_id - 1
         self.lip_id = self.lip_od - 2*self.lip_thick
-        self.netcup = LockingNetcup()
-        self.netcup_top_diam = self.netcup.net_top_diam
-
-    #This class method lets you create instances of child classes from the base class!
-    @classmethod
-    def from_instance(cls, instance):
-        #Remove keys which should not be overridden on instance of child class
-        dictfilt = lambda x, y: dict([ (i,x[i]) for i in x if i not in set(y)])
-        return cls(**dictfilt(asdict(instance), ["floor_h", "lip_h"]))
 
     def lock_nubs(self, floor):
         nub = cq.Workplane("XZ").circle(self.lock_nub_diam/2).extrude(self.lock_nub_diam/2)
@@ -103,7 +95,10 @@ class Floor:
 
 @dataclass
 class PlantFloor(Floor):
-    port_angle: float = 40
+    netcup: Any = LockingNetcup(net_top_diam=50, net_bot_diam=50)
+    netcup_top_diam = netcup.net_top_diam
+
+    port_angle: float = 35
     show_netcup: bool = False
     def make_ports(self, floor, n_ports=3):
         port_h_offset = self.floor_h / 2 - 12
