@@ -17,7 +17,7 @@ class BellSiphon(StylishPart):
     lock_top_offset: float = 20 #Dist from top to top of lock nub
 
     basin_h: float = 60 #Basin height
-    basin_r: float = 22 #Basin radius
+    basin_r: float = 22 - 0.4 #Basin radius (shrink by 0.4 to fit in tower)
 
     wall_thick: float = 1.6 #Wall thickness
 
