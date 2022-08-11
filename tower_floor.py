@@ -288,12 +288,17 @@ class MasonFloor(Floor):
         )
         m = m.union(self.make_base(add_lock_cutout=0))
         m = m.union(mason_thread.make().translate((0,0,-self.lid_loft_h-mason_thread.lid_h)))
+        
+        #Create cutout for pump power cable
+        cable_cut_w = 8
+        m = m.cut(
+            cq.Workplane("XZ").workplane().rect(cable_cut_w, self.joint_h*2, centered=(1,0)).extrude(self.tower_od).rotate((0,0,0), (0,0,1), 45)
+        )
+
         return m
 
 if "show_object" in locals():
-    #floor = PlantFloor().make()#.lock_cutout()#.make()
     #floor = CrownFloor().make()#.lock_cutout()#.make()
-    #floor = CrownFloor().make_sieve()#.lock_cutout()#.make()
-    #floor = MasonFloor().make().copyWorkplane(cq.Workplane("XZ")).workplane(origin=(0,0,0)).split(0,1)
     #lid = LidFloor().make()
-    floor = PlantFloor(show_netcup=1).display(show_object)
+    #floor = PlantFloor(show_netcup=1).display(show_object)
+    MasonFloor().display(show_object)
