@@ -222,27 +222,29 @@ class CrownFloor(Floor):
 
 @dataclass
 class CrownSieve(CrownFloor):
+    sieve_hole_r: float = 1.5
+    n_hole_per_row: int = 6
+    sieve_thickess: float = 1.5
     def make(self):
         crown_id = self.tower_od - 25
-        sieve_thickess = 2
         slope_apex = (self.tower_od - crown_id)/2*math.tan(self.crown_angle*math.pi/180)
         s = cq.Workplane("XZ").sketch().polygon([
-            [0,sieve_thickess],
+            [0,self.sieve_thickess],
             [0,0],
-            [crown_id/2-sieve_thickess,0],
+            [crown_id/2-self.sieve_thickess,0],
             [self.tower_id/2, slope_apex],
-            [self.tower_id/2, slope_apex+sieve_thickess],
-            [self.tower_id/2-sieve_thickess,slope_apex+sieve_thickess],
-            [crown_id/2-2,sieve_thickess],
-            [0,sieve_thickess],
+            [self.tower_id/2, slope_apex+self.sieve_thickess],
+            [self.tower_id/2-self.sieve_thickess,slope_apex+self.sieve_thickess],
+            [crown_id/2-self.sieve_thickess*1.5,self.sieve_thickess],
+            [0,self.sieve_thickess],
         ]).finalize().revolve(360)
         s = s.faces("<Z[-2]").workplane().cylinder(10,16/2,centered=[1,1,0])
         s = s.faces(">Z[-2]").circle(12.5/2).cutThruAll()
 
         #s = s.faces("<Z").workplane().move(crown_id/2-8, 0).circle(2).cutThruAll()
-        s = s.faces("<Z").workplane().polarArray(crown_id/2-8, 0, 360, 5).circle(2).cutThruAll()
-        s = s.faces("<Z").workplane().polarArray(crown_id/2-12, 25, 360, 5).circle(2).cutThruAll()
-        s = s.faces("<Z").workplane().polarArray(crown_id/2-16, 50, 360, 5).circle(2).cutThruAll()
+        s = s.faces("<Z").workplane().polarArray(crown_id/2-8, 0, 360, self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
+        s = s.faces("<Z").workplane().polarArray(crown_id/2-12, 25, 360, self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
+        #s = s.faces("<Z").workplane().polarArray(crown_id/2-16, 50, 360, 5).circle(2).cutThruAll()
 
         return s
 
@@ -303,5 +305,5 @@ if "show_object" in locals():
     #lid = LidFloor().make()
     PlantFloor(show_netcup=0).display(show_object)
     #MasonFloor().display(show_object)
-    #CrownFloor().sieve().display(show_object)
+    #CrownFloor().sieve().display_split(show_object)
     
