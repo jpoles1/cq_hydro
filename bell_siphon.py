@@ -14,22 +14,23 @@ class BellSiphon(StylishPart):
     add_lock_nubs: bool = True #Create locking nubs to slot into receiving part w/ cutouts
     n_locks: int = 2 #Number of locks/nubs
     lock_nub_diam: float = 4 #Diameter of lock nubs
+    lock_top_offset: float = 20 #Dist from top to top of lock nub
 
     basin_h: float = 60 #Basin height
-    basin_r: float = 25 #Basin radius
+    basin_r: float = 22 #Basin radius
 
     wall_thick: float = 1.6 #Wall thickness
 
-    drain_h: float = 30 #Water level at which basin starts to draing
+    drain_h: float = 25 #Water level at which basin starts to draing
     
     siphon_slot_h: float = drain_h/5 #Height of slots at top of siphon to allow water in (yet support roof)
     n_siphon_slot: int = 4 #Number of slots at top of siphon to allow water in (yet support roof)
 
-    bell_slot_h: float = drain_h/5 #Height of slots at top of siphon to allow water in (yet support roof)
-    n_bell_slot: int = 8 #Number of slots at top of siphon to allow water in (yet support roof)
+    bell_slot_h: float = drain_h/5 #Height of slots at bottom of bell to allow water in
+    n_bell_slot: int = 8 #Number of slots at bottom of bell to allow water in
 
     siphon_h: float = drain_h + siphon_slot_h #Height of siphon tube
-    siphon_r: float = 5 #Radius of siphon tube
+    siphon_r: float = 4.5 #Radius of siphon tube
     pipe_r: float = siphon_r #Radius of pipe outlet of siphon
     bell_r = siphon_r *2 #Radius of bell (2:1 ratio is important for bell siphon function, probably should not change this; read more here: https://www.ctahr.hawaii.edu/oc/freepubs/pdf/bio-10.pdf)
     bell_h = siphon_h - math.sqrt(bell_r**2 - siphon_r**2) #Dist between bell and top of siphon based on radius of each to prevent overlap during assembly
@@ -40,7 +41,7 @@ class BellSiphon(StylishPart):
     def lock_nubs(self, floor):
         nub = Workplane("XZ").circle(self.lock_nub_diam/2).extrude(self.lock_nub_diam/2 + 1)
         nub = nub.faces("<Y").fillet(self.lock_nub_diam/4)
-        nub = nub.translate((0,-self.basin_r+1,self.basin_h-self.lock_nub_diam/2 - 1))
+        nub = nub.translate((0,-self.basin_r+1,self.basin_h-self.lock_nub_diam/2 - self.lock_top_offset))
 
         #Revolve around center
         for i in range(self.n_locks):
@@ -117,17 +118,18 @@ class BellSiphon(StylishPart):
         if self.add_lock_nubs and self.n_locks > 0:
             basin = self.lock_nubs(basin)
 
-        snorkel_opening_h = 4
-        snorkel_r = 3
-        snorkel_wall_thick = 1.5
-        snorkel_h = self.bell_slot_h + snorkel_opening_h
-        snorkel_offset = self.bell_r + self.wall_thick + snorkel_r - 0.5
+        snorkel_opening_h = 4 #Water level at which snorkel bottom opens up = height/water level to stop siphoning
+        snorkel_r = 3 #snorkel pipe radius
+        snorkel_wall_thick = 1.5 #snorkel pipe wall thicness
+        snorkel_h = self.bell_slot_h + snorkel_opening_h #Z-height at which snorkel opens to stop siphoning; derived from snorkel_opening_h
+        snorkel_offset = self.bell_r + self.wall_thick + snorkel_r - 0.5 #X/Y offset of snorkel from bell wall
+        snorkel_bell_entrance_h = self.drain_h #Z-height at which snorkel enters bell
 
         snorkel_axis = "YZ"
         snorkel_axis_translate = (self.siphon_offset - (1 if snorkel_axis == "XZ" else 0) * snorkel_offset, (-1 if snorkel_axis == "YZ" else 0) * snorkel_offset, 0)
 
-        snorkel_path = Workplane(snorkel_axis).polyline([(0, self.wall_thick), (0, self.drain_h), (snorkel_offset-self.bell_r, self.drain_h)])
-        isnorkel_path = Workplane(snorkel_axis).polyline([(0, snorkel_h - snorkel_opening_h/2), (0, self.drain_h), (snorkel_offset-self.bell_r+self.wall_thick, self.drain_h)])
+        snorkel_path = Workplane(snorkel_axis).polyline([(0, self.wall_thick), (0, snorkel_bell_entrance_h), (snorkel_offset-self.bell_r, snorkel_bell_entrance_h)])
+        isnorkel_path = Workplane(snorkel_axis).polyline([(0, snorkel_h - snorkel_opening_h/2), (0, snorkel_bell_entrance_h), (snorkel_offset-self.bell_r+self.wall_thick, snorkel_bell_entrance_h)])
 
         snorkel = (
             Workplane("XY").workplane(snorkel_h)
@@ -147,10 +149,30 @@ class BellSiphon(StylishPart):
         basin = basin.union(snorkel)
         basin = basin.cut(isnorkel)
 
+        wall_cutout = 1
+        cutout_z_offset = self.wall_thick + 10
+        cuthout_w = self.basin_r * 1.5
+        cutout_h = 18
+        cutout_angle_range = 100
+        cutout_slot_n = 5
+        if wall_cutout:
+            #basin = basin.copyWorkplane(Workplane("YZ")).workplane(0, origin=(0,0,cutout_z_offset)).rect(cuthout_w, cutout_h, centered=[1,0]).cutBlind(-self.basin_r)
+            basin = basin.copyWorkplane(Workplane("XY")).workplane(cutout_z_offset).polarArray(self.basin_r, 90 + (180-cutout_angle_range)/2, cutout_angle_range, cutout_slot_n).circle(self.wall_thick*2).cutBlind(cutout_h)
+
+
         return basin.rotate((0,0,0), (0,0,1), 180)
 
+    def draw_water(self, water_h, basin_angle):
+        bs = BellSiphon().make()
+        water_line = Workplane("XY").workplane(water_h).circle(self.basin_r*5).extrude(1)#.intersect()
+        a = Assembly()
+        a = a.add(bs.translate((self.basin_r,0,0)).rotate((0,0,0), (0,1,0), basin_angle-90))
+        a = a.add(water_line, color=Color(0, 0, 1, 0.5))
+        show_object(a)
+
 if "show_object" in locals():
-    BellSiphon().display_split(show_object)
+    #BellSiphon().draw_water(25, 43)
+    #BellSiphon().display(show_object)
     BellSiphon().export("stl/bell_siphon.stl")
-    #BellSiphon().display_split(show_object)
-    #show_object(Netcup().make().translate((0,0,50)))
+    BellSiphon().display_split(show_object)
+    #show_object(Netcup().make().translate((0,0,40)))

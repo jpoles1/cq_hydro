@@ -8,7 +8,7 @@ class Netcup:
     net_top_brim_diam: float = 38
     net_h: float = 40
     wall_thick: float = 1.2
-    net_bot_hole_diam = 15
+    net_bot_hole_diam: float = 15
 
     def __post_init__(self):
         #Post-init processing

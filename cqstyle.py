@@ -37,6 +37,7 @@ class StylishPart:
 
     def export(self, filepath: str, regen: bool = False):
         exporters.export(self.part(regen), filepath)
+        return self
 
 
 #At end of new StylishPart class definition files you can include the following to render the given file when it is opened in CQ-Editor

@@ -4,13 +4,15 @@ import math
 import cadquery as cq
 from locking_netcup import LockingNetcup
 from mason_thread import MasonThread
+from bell_siphon import BellSiphon
+from typing import Any
 
 @dataclass
 class Floor(StylishPart):
     tower_od: float = 80
     wall_thick: float = 2
     lip_thick: float = 3
-    floor_h: float = 70
+    floor_h: float = 85
     joint_h: float = 14
     lip_h: float = joint_h
     n_locks: int = 4
@@ -32,10 +34,22 @@ class Floor(StylishPart):
             floor = floor.union(nub.rotate((0,0,0), (0,0,1), offset_angle))
         return floor
 
-    def lock_cutout_sketch(self, lock_h, h_track_w, h_track_h, v_track_w, v_track_h):
-        return  (
-            cq.Sketch()
-            .polygon([
+    def lock_cutout_sketch(self, lock_h, h_track_w, h_track_h, v_track_w, v_track_h, slanted=1):
+        #Sketch starts in top left corner of lock
+        if slanted:
+            return cq.Sketch().polygon([
+                    [0,0],
+                    [v_track_w,0],
+                    [v_track_w, -v_track_h-0.25],
+                    [h_track_w,-0.5],
+                    [h_track_w, -lock_h],
+                    [h_track_w-v_track_w, -lock_h],
+                    [h_track_w-v_track_w, -lock_h+v_track_h+0.25],
+                    [0,-lock_h+1],
+                    [0,0]
+                ]).vertices().fillet(0.5)
+        else:
+            return cq.Sketch().polygon([
                 [0,0],
                 [v_track_w,0],
                 [v_track_w, -v_track_h],
@@ -46,13 +60,12 @@ class Floor(StylishPart):
                 [0,-lock_h+v_track_h],
                 [0,0]
             ])
-        )
 
     def lock_cutout(self, floor):
         lock_h = self.joint_h
-        h_track_w = 14
+        h_track_w = 16
         h_track_h = self.lock_nub_diam + 1
-        v_track_w = self.lock_nub_diam + 1
+        v_track_w = self.lock_nub_diam + 1.5
         v_track_h = (lock_h - h_track_h) / 2
 
         #Lock shape (like a sideways tetris Z)
@@ -95,26 +108,48 @@ class Floor(StylishPart):
 
 @dataclass
 class PlantFloor(Floor):
-    netcup: Any = LockingNetcup(net_top_diam=50, net_bot_diam=50)
-    netcup_top_diam = netcup.net_top_diam
+    #netcup: Any = LockingNetcup()
+    #netcup_h: float = netcup.net_h
+    #port_diam = netcup.net_top_diam
+    #netcup_lock_top_offset = 0
+    netcup: Any = BellSiphon()
+    netcup_h: float = netcup.basin_h
+    port_diam: float = netcup.basin_r * 2
+    netcup_lock_top_offset = netcup.lock_top_offset
 
-    port_angle: float = 35
+    port_angle: float = 43
     show_netcup: bool = False
     def make_ports(self, floor, n_ports=3):
-        port_h_offset = self.floor_h / 2 - 12
-        port_stickout = 44
+        #port_z_offset = self.floor_h / 3
+        port_z_offset = 18 #Z-distance between base of tower to base of port
+        port_stickout = 55
+        port_wall_thick = self.wall_thick + 2
+        cutout_wall_thick = 1.5
+        
+
+        #Places ports angled and positioned on the outer surface of the tower
         def position_port_part(p, angle_offset=0):
             p = p.rotate((0,0,0),(1,0,0), self.port_angle)
-            p = p.translate((0,self.tower_id/2-self.netcup_top_diam/2*math.tan(self.port_angle*math.pi/180), port_h_offset))
+            p = p.translate((0,self.tower_id/2-self.port_diam/2*math.tan(self.port_angle*math.pi/180), port_z_offset))
             if angle_offset != 0:
                 p = p.rotate((0,0,0), (0,0,1), angle_offset)
             return p
             
-        port = cq.Workplane("XZ")\
-            .circle(self.netcup_top_diam/2)\
-            .circle(self.netcup_top_diam/2 + self.wall_thick)\
-            .extrude(-port_stickout)
+        rounded_port = 1
+        #Create port pipe
+        if rounded_port:
+            port = cq.Workplane("XZ")\
+                .circle(self.port_diam/2)\
+                .circle(self.port_diam/2 + port_wall_thick)\
+                .extrude(-port_stickout)
 
+        else: 
+            port = cq.Workplane("XZ")\
+                .rect(self.port_diam/2, self.port_diam/2)\
+                .rect(self.port_diam/2 + port_wall_thick, self.port_diam/2 + port_wall_thick)\
+                .extrude(-port_stickout)
+
+        #Create lock cutout shape for port
         lock_h= 14
         h_track_w = 12
         h_track_h = self.lock_nub_diam + 1
@@ -126,19 +161,21 @@ class PlantFloor(Floor):
             .extrude(-self.tower_od/2)
             .translate((-v_track_w/2,port_stickout,0))
         )
+
+        #Cut locks out of port walls
         n_locks = 2
         for i in range(n_locks):
             offset_angle = i * 360 / n_locks 
             port = port.cut(lock.rotate((0,0,0), (0,1,0), offset_angle+90))
         
+        #Replace very outer port wall to prevent lock cutout from going all the way through
         port = port.faces("XZ").workplane()\
-            .circle(self.netcup_top_diam/2 + self.wall_thick)\
-            .circle(self.netcup_top_diam/2 + self.wall_thick-1)\
+            .circle(self.port_diam/2 + port_wall_thick)\
+            .circle(self.port_diam/2 + port_wall_thick-cutout_wall_thick)\
             .extrude(-port_stickout)
-        cq.exporters.export(port, "stl/port_test.stl")
 
         port_hole = cq.Workplane("XZ")\
-            .circle(self.netcup_top_diam/2)\
+            .circle(self.port_diam/2)\
             .extrude(-port_stickout)
 
         #Clear port extrusion from inside of tower
@@ -150,8 +187,8 @@ class PlantFloor(Floor):
             floor = floor.union(position_port_part(port, angle_offset).cut(port_center_cutout))
             floor = floor.cut(position_port_part(port_hole, angle_offset))
             if (self.show_netcup):
-                nc = self.netcup.make().rotate((0,0,0), (1,0,0), -90)
-                nc = nc.translate((0,-(self.netcup.net_h-port_stickout),0))
+                nc = self.netcup.make().rotate((0,0,0), (0,0,1), -90).rotate((0,0,0), (1,0,0), -90)
+                nc = nc.translate((0,port_stickout-self.netcup_h+self.netcup_lock_top_offset-lock_h+self.netcup.lock_nub_diam,0))
                 floor = floor.union(position_port_part(nc, angle_offset))
 
         return floor
@@ -252,10 +289,11 @@ class MasonFloor(Floor):
         m = m.union(self.make_base(add_lock_cutout=0))
         m = m.union(mason_thread.make().translate((0,0,-self.lid_loft_h-mason_thread.lid_h)))
         return m
-        
-#floor = PlantFloor().make()#.lock_cutout()#.make()
-#floor = CrownFloor().make()#.lock_cutout()#.make()
-#floor = CrownFloor().make_sieve()#.lock_cutout()#.make()
-#floor = MasonFloor().make().copyWorkplane(cq.Workplane("XZ")).workplane(origin=(0,0,0)).split(0,1)
-#lid = LidFloor().make()
-floor = PlantFloor(show_netcup=1).make()#.copyWorkplane(cq.Workplane("XZ")).workplane(origin=(0,0,0)).split(0,1)
+
+if "show_object" in locals():
+    #floor = PlantFloor().make()#.lock_cutout()#.make()
+    #floor = CrownFloor().make()#.lock_cutout()#.make()
+    #floor = CrownFloor().make_sieve()#.lock_cutout()#.make()
+    #floor = MasonFloor().make().copyWorkplane(cq.Workplane("XZ")).workplane(origin=(0,0,0)).split(0,1)
+    #lid = LidFloor().make()
+    floor = PlantFloor(show_netcup=1).display(show_object)
