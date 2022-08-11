@@ -36,16 +36,17 @@ class Floor(StylishPart):
 
     def lock_cutout_sketch(self, lock_h, h_track_w, h_track_h, v_track_w, v_track_h, slanted=1):
         #Sketch starts in top left corner of lock
+        #Lock shape (like a sideways tetris Z)
         if slanted:
             return cq.Sketch().polygon([
                     [0,0],
                     [v_track_w,0],
                     [v_track_w, -v_track_h-0.25],
-                    [h_track_w,-0.5],
+                    [h_track_w,-1.5], #Adds slant
                     [h_track_w, -lock_h],
                     [h_track_w-v_track_w, -lock_h],
                     [h_track_w-v_track_w, -lock_h+v_track_h+0.25],
-                    [0,-lock_h+1],
+                    [0,-lock_h+1.5], #Adds slant
                     [0,0]
                 ]).vertices().fillet(0.5)
         else:
@@ -84,7 +85,7 @@ class Floor(StylishPart):
             lock = lock.union(lock.rotate((0,0,0), (0,0,1), offset_angle))
         
         #Create a thin inner wall to support the lock
-        lock_outer_wall_replace = floor.faces("<Z").workplane().circle(self.lip_id/2).circle(self.lip_id/2 + self.wall_thick/3).extrude(-self.joint_h, combine=0)
+        lock_outer_wall_replace = floor.faces("<Z").workplane().circle(self.lip_id/2-1.5).circle(self.lip_id/2 + 0.6).extrude(-self.joint_h, combine=0)
         floor = floor.cut(lock).union(lock_outer_wall_replace)
 
         return floor
@@ -93,8 +94,8 @@ class Floor(StylishPart):
         #Make main body
         f = cq.Workplane("XY").circle(self.tower_od/2).circle(self.tower_od/2-self.wall_thick).extrude(self.floor_h)
         #Make inner lip for joint with section below
-        lip_bridge = f.faces("<Z").workplane(offset=-2.5).circle(self.tower_od/2).circle(self.lip_id/2).extrude(3, combine=0)
-        lip_bridge = lip_bridge.faces(">Z").chamfer((self.tower_od-self.lip_id)/4 - 0.4)
+        lip_bridge = f.faces("<Z").workplane(offset=-2.5).circle(self.tower_od/2).circle(self.lip_id/2-1.5).extrude(3, combine=0)
+        lip_bridge = lip_bridge.faces(">Z").chamfer((self.tower_od-self.lip_id-1.5)/4 - 0.4)
         inner_lip = f.faces("<Z").workplane().circle(self.lip_od/2).circle(self.lip_id/2).extrude(self.lip_h,combine=0)
         f = f.union(inner_lip).union(lip_bridge)
 
@@ -159,7 +160,7 @@ class PlantFloor(Floor):
             cq.Workplane("XY")
             .placeSketch(self.lock_cutout_sketch(lock_h, h_track_w, h_track_h, v_track_w, v_track_h))
             .extrude(-self.tower_od/2)
-            .translate((-v_track_w/2,port_stickout,0))
+            .translate((-h_track_w + v_track_w/2,port_stickout,0))
         )
 
         #Cut locks out of port walls
@@ -300,5 +301,7 @@ class MasonFloor(Floor):
 if "show_object" in locals():
     #floor = CrownFloor().make()#.lock_cutout()#.make()
     #lid = LidFloor().make()
-    #floor = PlantFloor(show_netcup=1).display(show_object)
-    MasonFloor().display(show_object)
+    PlantFloor(show_netcup=0).display(show_object)
+    #MasonFloor().display(show_object)
+    #CrownFloor().sieve().display(show_object)
+    
