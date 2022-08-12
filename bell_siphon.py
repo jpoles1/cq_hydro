@@ -4,7 +4,13 @@ from cqstyle import StylishPart
 import math
 
 from netcup import Netcup
-from typing import Any
+from typing import Union
+from enum import Enum
+
+class SnorkelAxis(str, Enum):
+    XZ = "XZ"
+    YZ = "YZ"
+
 
 @dataclass
 class BellSiphon(StylishPart):
@@ -14,29 +20,32 @@ class BellSiphon(StylishPart):
     add_lock_nubs: bool = True #Create locking nubs to slot into receiving part w/ cutouts
     n_locks: int = 2 #Number of locks/nubs
     lock_nub_diam: float = 4 #Diameter of lock nubs
-    lock_top_offset: float = 20 #Dist from top to top of lock nub
+    lock_top_offset: float = 28 #Dist from top to top of lock nub
 
-    basin_h: float = 60 #Basin height
+    basin_h: float = 70 #Basin height
     basin_r: float = 22 #Basin radius
 
     wall_thick: float = 1.6 #Wall thickness
 
     drain_h: float = 25 #Water level at which basin starts to draing
     
-    siphon_slot_h: float = drain_h/5 #Height of slots at top of siphon to allow water in (yet support roof)
+    siphon_slot_h: float = drain_h/4 #Height of slots at top of siphon to allow water in (yet support roof)
     n_siphon_slot: int = 4 #Number of slots at top of siphon to allow water in (yet support roof)
 
     bell_slot_h: float = drain_h/5 #Height of slots at bottom of bell to allow water in
     n_bell_slot: int = 8 #Number of slots at bottom of bell to allow water in
 
     siphon_h: float = drain_h + siphon_slot_h #Height of siphon tube
-    siphon_r: float = 4.5 #Radius of siphon tube
+    siphon_r: float = 5 #Radius of siphon tube
     pipe_r: float = siphon_r #Radius of pipe outlet of siphon
     bell_r = siphon_r *2 #Radius of bell (2:1 ratio is important for bell siphon function, probably should not change this; read more here: https://www.ctahr.hawaii.edu/oc/freepubs/pdf/bio-10.pdf)
     bell_h = siphon_h - math.sqrt(bell_r**2 - siphon_r**2) #Dist between bell and top of siphon based on radius of each to prevent overlap during assembly
 
     siphon_offset: float = basin_r - bell_r - wall_thick if vertical_pipe else 0
     #siphon_offset: float = 0
+
+    snorkel: bool = True
+    snorkel_axis: Union[SnorkelAxis,str] = SnorkelAxis.YZ
 
     def lock_nubs(self, floor):
         nub = Workplane("XZ").circle(self.lock_nub_diam/2).extrude(self.lock_nub_diam/2 + 1)
@@ -118,36 +127,36 @@ class BellSiphon(StylishPart):
         if self.add_lock_nubs and self.n_locks > 0:
             basin = self.lock_nubs(basin)
 
-        snorkel_opening_h = 4 #Water level at which snorkel bottom opens up = height/water level to stop siphoning
-        snorkel_r = 3 #snorkel pipe radius
-        snorkel_wall_thick = 1.5 #snorkel pipe wall thicness
-        snorkel_h = self.bell_slot_h + snorkel_opening_h #Z-height at which snorkel opens to stop siphoning; derived from snorkel_opening_h
-        snorkel_offset = self.bell_r + self.wall_thick + snorkel_r - 0.5 #X/Y offset of snorkel from bell wall
-        snorkel_bell_entrance_h = self.drain_h #Z-height at which snorkel enters bell
+        if self.snorkel:
+            snorkel_opening_h = 4 #Water level at which snorkel bottom opens up = height/water level to stop siphoning
+            snorkel_r = 3 #snorkel pipe radius
+            snorkel_wall_thick = 1.5 #snorkel pipe wall thicness
+            snorkel_h = self.bell_slot_h + snorkel_opening_h #Z-height at which snorkel opens to stop siphoning; derived from snorkel_opening_h
+            snorkel_offset = self.bell_r + self.wall_thick + snorkel_r - 0.5 #X/Y offset of snorkel from bell wall
+            snorkel_bell_entrance_h = self.drain_h #Z-height at which snorkel enters bell
 
-        snorkel_axis = "YZ"
-        snorkel_axis_translate = (self.siphon_offset - (1 if snorkel_axis == "XZ" else 0) * snorkel_offset, (-1 if snorkel_axis == "YZ" else 0) * snorkel_offset, 0)
+            snorkel_axis_translate = (self.siphon_offset - (1 if self.snorkel_axis == "XZ" else 0) * snorkel_offset, (-1 if self.snorkel_axis == "YZ" else 0) * snorkel_offset, 0)
 
-        snorkel_path = Workplane(snorkel_axis).polyline([(0, self.wall_thick), (0, snorkel_bell_entrance_h), (snorkel_offset-self.bell_r, snorkel_bell_entrance_h)])
-        isnorkel_path = Workplane(snorkel_axis).polyline([(0, snorkel_h - snorkel_opening_h/2), (0, snorkel_bell_entrance_h), (snorkel_offset-self.bell_r+self.wall_thick, snorkel_bell_entrance_h)])
+            snorkel_path = Workplane(self.snorkel_axis).polyline([(0, self.wall_thick), (0, snorkel_bell_entrance_h), (snorkel_offset-self.bell_r, snorkel_bell_entrance_h)])
+            isnorkel_path = Workplane(self.snorkel_axis).polyline([(0, snorkel_h - snorkel_opening_h/2), (0, snorkel_bell_entrance_h), (snorkel_offset-self.bell_r+self.wall_thick, snorkel_bell_entrance_h)])
 
-        snorkel = (
-            Workplane("XY").workplane(snorkel_h)
-            .circle(snorkel_r).sweep(snorkel_path, transition="round")
-            .copyWorkplane(Workplane("XY")).workplane(snorkel_h)
-            .polarArray(snorkel_r, 0, 360, 4)
-            .circle(snorkel_wall_thick+0.1).cutBlind(-snorkel_opening_h)
-            .translate(snorkel_axis_translate)
-        )
+            snorkel = (
+                Workplane("XY").workplane(snorkel_h)
+                .circle(snorkel_r).sweep(snorkel_path, transition="round")
+                .copyWorkplane(Workplane("XY")).workplane(snorkel_h)
+                .polarArray(snorkel_r, 0, 360, 4)
+                .circle(snorkel_wall_thick+0.1).cutBlind(-snorkel_opening_h)
+                .translate(snorkel_axis_translate)
+            )
 
-        isnorkel = (
-            Workplane("XY").workplane(snorkel_h)
-            .circle(snorkel_r-snorkel_wall_thick).sweep(isnorkel_path, transition="round")
-            .translate(snorkel_axis_translate)
-        )
+            isnorkel = (
+                Workplane("XY").workplane(snorkel_h)
+                .circle(snorkel_r-snorkel_wall_thick).sweep(isnorkel_path, transition="round")
+                .translate(snorkel_axis_translate)
+            )
 
-        basin = basin.union(snorkel)
-        basin = basin.cut(isnorkel)
+            basin = basin.union(snorkel)
+            basin = basin.cut(isnorkel)
 
         wall_cutout = 1
         cutout_z_offset = self.wall_thick + 10
