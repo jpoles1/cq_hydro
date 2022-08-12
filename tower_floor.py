@@ -222,7 +222,7 @@ class CrownFloor(Floor):
 
 @dataclass
 class CrownSieve(CrownFloor):
-    sieve_hole_r: float = 1.5
+    sieve_hole_r: float = 1.75
     n_hole_per_row: int = 6
     sieve_thickess: float = 1.5
     def make(self):
