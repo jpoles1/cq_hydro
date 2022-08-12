@@ -115,7 +115,7 @@ class PlantFloor(Floor):
     #netcup_lock_top_offset = 0
     netcup: Any = BellSiphon()
     netcup_h: float = netcup.basin_h
-    port_diam: float = netcup.basin_r * 2
+    port_diam: float = (netcup.basin_r + 0.2) * 2 #Clearance for smooth fit
     netcup_lock_top_offset = netcup.lock_top_offset
 
     port_angle: float = 43
@@ -262,10 +262,12 @@ class LidFloor(Floor):
         
 @dataclass
 class MasonFloor(Floor):
-    floor_h: float = 18
+    floor_h: float = 22
     lid_id: float = 82
     lid_loft_h: float = 10
     thread_pitch: float = 6.5
+    cable_w: float = 6.5
+    cable_h: float = 3
 
     def make(self):
         mason_thread = MasonThread(lid_h=18)
@@ -292,10 +294,10 @@ class MasonFloor(Floor):
         m = m.union(self.make_base(add_lock_cutout=0))
         m = m.union(mason_thread.make().translate((0,0,-self.lid_loft_h-mason_thread.lid_h)))
         
+        cable_hole_h = self.joint_h + self.cable_h
         #Create cutout for pump power cable
-        cable_cut_w = 8
         m = m.cut(
-            cq.Workplane("XZ").workplane().rect(cable_cut_w, self.joint_h*2, centered=(1,0)).extrude(self.tower_od).rotate((0,0,0), (0,0,1), 45)
+            cq.Workplane("XZ").workplane().center(0, self.floor_h-cable_hole_h).rect(self.cable_w, cable_hole_h, centered=(1,0)).extrude(self.tower_od).rotate((0,0,0), (0,0,1), 45)
         )
 
         return m
@@ -303,7 +305,7 @@ class MasonFloor(Floor):
 if "show_object" in locals():
     #floor = CrownFloor().make()#.lock_cutout()#.make()
     #lid = LidFloor().make()
-    PlantFloor(show_netcup=0).display(show_object)
-    #MasonFloor().display(show_object)
+    #PlantFloor(show_netcup=0).display(show_object)
+    MasonFloor().display(show_object)
     #CrownFloor().sieve().display_split(show_object)
     
