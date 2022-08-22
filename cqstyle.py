@@ -13,6 +13,14 @@ class StylishPart:
         dictfilt = lambda x, y: dict([ (i,x[i]) for i in x if i not in set(y)])
         return cls(**dictfilt(asdict(instance), ["floor_h", "lip_h"]))
 
+    #Should not be edited
+    #If variables need to be calculate on class instantiation, then this should be done under self.calc_vars()
+    def __post_init__(self):
+        self.calc_vars()
+
+    def calc_vars(self):
+        return None
+
     def make(self) -> Workplane:
         #Replace with your own function!
         part = (
@@ -32,7 +40,11 @@ class StylishPart:
         return self
     
     def display_split(self, _show_object, regen: bool = False, axis="XZ"):
-        _show_object(self.part(regen).copyWorkplane(Workplane(axis)).split(0,1))
+        p = self.part(regen)
+        if isinstance(p, cq.Assembly):
+            #Allows for splitting of Assembly
+            p = Workplane("XY").add(p.toCompound())
+        _show_object(p.copyWorkplane(Workplane(axis)).split(0,1))
         return self
 
     def export(self, filepath: str, regen: bool = False):
