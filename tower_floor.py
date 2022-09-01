@@ -1,11 +1,14 @@
 from dataclasses import dataclass
-from cqstyle import StylishPart
 import math
 import cadquery as cq
 from locking_netcup import LockingNetcup
 from mason_thread import MasonThread
 from bell_siphon import BellSiphon
 from typing import Any
+
+import sys
+sys.path.append("../cq_style")
+from cq_style import StylishPart
 
 @dataclass
 class Floor(StylishPart):
@@ -14,12 +17,12 @@ class Floor(StylishPart):
     lip_thick: float = 3
     floor_h: float = 85
     joint_h: float = 14
-    lip_h: float = joint_h
     n_locks: int = 4
     lock_nub_diam: float = 4
 
-    def __post_init__(self):
+    def calc_vars(self):
         self.tower_id = self.tower_od - 2*self.wall_thick
+        self.lip_h: float = self.joint_h
         self.lip_od = self.tower_id - 1
         self.lip_id = self.lip_od - 2*self.lip_thick
 
@@ -109,16 +112,23 @@ class Floor(StylishPart):
 
 @dataclass
 class PlantFloor(Floor):
-    #netcup: Any = LockingNetcup()
-    #netcup_h: float = netcup.net_h
-    #port_diam = netcup.net_top_diam
-    #netcup_lock_top_offset = 0
-    netcup: Any = BellSiphon()
-    netcup_h: float = netcup.basin_h
-    port_diam: float = (netcup.basin_r + 0.2) * 2 #Clearance for smooth fit
-    netcup_lock_top_offset = netcup.lock_top_offset
-
     port_angle: float = 43
+
+    def calc_vars(self):
+        self.tower_id = self.tower_od - 2*self.wall_thick
+        self.lip_h: float = self.joint_h
+        self.lip_od = self.tower_id - 1
+        self.lip_id = self.lip_od - 2*self.lip_thick
+        #netcup: Any = LockingNetcup()
+        #netcup_h: float = netcup.net_h
+        #port_diam = netcup.net_top_diam
+        #netcup_lock_top_offset = 0
+        self.netcup: Any = BellSiphon(basin_angle=self.port_angle)
+        self.netcup_h: float = self.netcup.basin_h
+        self.port_diam: float = (self.netcup.basin_r + 0.2) * 2 #Clearance for smooth fit
+        self.netcup_lock_top_offset = self.netcup.lock_top_offset
+
+
     show_netcup: bool = False
     def make_ports(self, floor, n_ports=3):
         #port_z_offset = self.floor_h / 3
@@ -222,8 +232,9 @@ class CrownFloor(Floor):
 
 @dataclass
 class CrownSieve(CrownFloor):
+    floor_h: float = 0
     sieve_hole_r: float = 1.75
-    n_hole_per_row: int = 6
+    n_hole_per_row: int = 8
     sieve_thickess: float = 1.5
     def make(self):
         crown_id = self.tower_od - 25
@@ -242,8 +253,8 @@ class CrownSieve(CrownFloor):
         s = s.faces(">Z[-2]").circle(12.5/2).cutThruAll()
 
         #s = s.faces("<Z").workplane().move(crown_id/2-8, 0).circle(2).cutThruAll()
-        s = s.faces("<Z").workplane().polarArray(crown_id/2-8, 0, 360, self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
-        s = s.faces("<Z").workplane().polarArray(crown_id/2-12, 25, 360, self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
+        s = s.faces("<Z").workplane().polarArray(crown_id/2-6, 0, 360, 2*self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
+        s = s.faces("<Z").workplane().polarArray(crown_id/2-11, 0.25*360/self.n_hole_per_row, 360, self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
         #s = s.faces("<Z").workplane().polarArray(crown_id/2-16, 50, 360, 5).circle(2).cutThruAll()
 
         return s
@@ -305,7 +316,7 @@ class MasonFloor(Floor):
 if "show_object" in locals():
     #floor = CrownFloor().make()#.lock_cutout()#.make()
     #lid = LidFloor().make()
-    #PlantFloor(show_netcup=0).display(show_object)
-    MasonFloor().display(show_object)
-    #CrownFloor().sieve().display_split(show_object)
+    PlantFloor(show_netcup=1).display(debug)
+    #MasonFloor().display(show_object)
+    #CrownFloor().sieve().display(show_object).export("stl/sieve.stl")
     
