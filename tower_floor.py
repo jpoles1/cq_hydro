@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import math
+from math import sin, cos, tan, pi, degrees, radians
 import cadquery as cq
 from locking_netcup import LockingNetcup
 from mason_thread import MasonThread
@@ -37,19 +37,20 @@ class Floor(StylishPart):
             floor = floor.union(nub.rotate((0,0,0), (0,0,1), offset_angle))
         return floor
 
-    def lock_cutout_sketch(self, lock_h, h_track_w, h_track_h, v_track_w, v_track_h, slanted=1):
+    def lock_cutout_sketch(self, lock_h, h_track_w, h_track_h, v_track_w, v_track_h, h_slanted=1, v_slant_angle = 70):
         #Sketch starts in top left corner of lock
         #Lock shape (like a sideways tetris Z)
-        if slanted:
+        if h_slanted:
+            h_slant_dist = 1.5
             return cq.Sketch().polygon([
                     [0,0],
                     [v_track_w,0],
-                    [v_track_w, -v_track_h-0.25],
-                    [h_track_w,-1.5], #Adds slant
+                    [v_track_w+(v_track_h+0.25)/tan(radians(v_slant_angle)), -v_track_h-0.25],
+                    [h_track_w,-h_slant_dist], #Adds slant
                     [h_track_w, -lock_h],
                     [h_track_w-v_track_w, -lock_h],
                     [h_track_w-v_track_w, -lock_h+v_track_h+0.25],
-                    [0,-lock_h+1.5], #Adds slant
+                    [(lock_h-h_slant_dist)/tan(radians(v_slant_angle)),-lock_h+h_slant_dist], #Adds slant
                     [0,0]
                 ]).vertices().fillet(0.5)
         else:
@@ -67,7 +68,7 @@ class Floor(StylishPart):
 
     def lock_cutout(self, floor):
         lock_h = self.joint_h
-        h_track_w = 16
+        h_track_w = 20
         h_track_h = self.lock_nub_diam + 1
         v_track_w = self.lock_nub_diam + 1.5
         v_track_h = (lock_h - h_track_h) / 2
@@ -133,7 +134,7 @@ class PlantFloor(Floor):
     def make_ports(self, floor, n_ports=3):
         #port_z_offset = self.floor_h / 3
         port_z_offset = 18 #Z-distance between base of tower to base of port
-        port_stickout = 55
+        port_stickout = 58
         port_wall_thick = self.wall_thick + 2
         cutout_wall_thick = 1.5
         
@@ -141,7 +142,7 @@ class PlantFloor(Floor):
         #Places ports angled and positioned on the outer surface of the tower
         def position_port_part(p, angle_offset=0):
             p = p.rotate((0,0,0),(1,0,0), self.port_angle)
-            p = p.translate((0,self.tower_id/2-self.port_diam/2*math.tan(self.port_angle*math.pi/180), port_z_offset))
+            p = p.translate((0,self.tower_id/2-self.port_diam/2*tan(self.port_angle*pi/180), port_z_offset))
             if angle_offset != 0:
                 p = p.rotate((0,0,0), (0,0,1), angle_offset)
             return p
@@ -168,7 +169,7 @@ class PlantFloor(Floor):
         v_track_h = (lock_h - h_track_h) / 2
         lock = (
             cq.Workplane("XY")
-            .placeSketch(self.lock_cutout_sketch(lock_h, h_track_w, h_track_h, v_track_w, v_track_h))
+            .placeSketch(self.lock_cutout_sketch(lock_h, h_track_w, h_track_h, v_track_w, v_track_h, v_slant_angle=90))
             .extrude(-self.tower_od/2)
             .translate((-h_track_w + v_track_w/2,port_stickout,0))
         )
@@ -214,9 +215,10 @@ class CrownFloor(Floor):
     crown_angle: float = 45
     lid_h = 20
     lid_lip_h = 14
+
     def make(self):
         crown_id = self.tower_od - 25
-        slope_apex = (self.tower_od - crown_id)/2*math.tan(self.crown_angle*math.pi/180)
+        slope_apex = (self.tower_od - crown_id)/2*tan(radians(self.crown_angle))
         f = self.make_base(add_lock_nubs=0)
         crown_slope = cq.Workplane("XZ").sketch().polygon([
             [self.tower_od/2, 0],
@@ -236,26 +238,32 @@ class CrownSieve(CrownFloor):
     sieve_hole_r: float = 1.75
     n_hole_per_row: int = 8
     sieve_thickess: float = 1.5
+    
+    def calc_vars(self):
+        self.tower_id = self.tower_od - 2*self.wall_thick
+        self.sieve_od = self.tower_id - 6
+        self.sieve_id = self.tower_od - 25
+        self.sieve_h = (self.sieve_od - self.sieve_id)/2*tan(radians(self.crown_angle))
+
+
     def make(self):
-        crown_id = self.tower_od - 25
-        slope_apex = (self.tower_od - crown_id)/2*math.tan(self.crown_angle*math.pi/180)
         s = cq.Workplane("XZ").sketch().polygon([
             [0,self.sieve_thickess],
             [0,0],
-            [crown_id/2-self.sieve_thickess,0],
-            [self.tower_id/2, slope_apex],
-            [self.tower_id/2, slope_apex+self.sieve_thickess],
-            [self.tower_id/2-self.sieve_thickess,slope_apex+self.sieve_thickess],
-            [crown_id/2-self.sieve_thickess*1.5,self.sieve_thickess],
+            [self.sieve_id/2,0],
+            [self.sieve_od/2, self.sieve_h],
+            [self.sieve_od/2, self.sieve_h+self.sieve_thickess],
+            [self.sieve_od/2-self.sieve_thickess,self.sieve_h+self.sieve_thickess],
+            [self.sieve_id/2-self.sieve_thickess*1.5,self.sieve_thickess],
             [0,self.sieve_thickess],
         ]).finalize().revolve(360)
         s = s.faces("<Z[-2]").workplane().cylinder(10,16/2,centered=[1,1,0])
         s = s.faces(">Z[-2]").circle(12.5/2).cutThruAll()
 
-        #s = s.faces("<Z").workplane().move(crown_id/2-8, 0).circle(2).cutThruAll()
-        s = s.faces("<Z").workplane().polarArray(crown_id/2-6, 0, 360, 2*self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
-        s = s.faces("<Z").workplane().polarArray(crown_id/2-11, 0.25*360/self.n_hole_per_row, 360, self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
-        #s = s.faces("<Z").workplane().polarArray(crown_id/2-16, 50, 360, 5).circle(2).cutThruAll()
+        #s = s.faces("<Z").workplane().move(self.sieve_id/2-8, 0).circle(2).cutThruAll()
+        s = s.faces("<Z").workplane().polarArray(self.sieve_id/2-6, 0, 360, 2*self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
+        s = s.faces("<Z").workplane().polarArray(self.sieve_id/2-11, 0.25*360/self.n_hole_per_row, 360, self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
+        #s = s.faces("<Z").workplane().polarArray(self.sieve_id/2-16, 50, 360, 5).circle(2).cutThruAll()
 
         return s
 
@@ -316,7 +324,7 @@ class MasonFloor(Floor):
 if "show_object" in locals():
     #floor = CrownFloor().make()#.lock_cutout()#.make()
     #lid = LidFloor().make()
-    PlantFloor(show_netcup=1).display(debug)
+    PlantFloor(show_netcup=0).display(show_object)
     #MasonFloor().display(show_object)
     #CrownFloor().sieve().display(show_object).export("stl/sieve.stl")
     
