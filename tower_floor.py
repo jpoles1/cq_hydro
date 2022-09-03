@@ -229,11 +229,17 @@ class CrownFloor(Floor):
         ]).finalize().revolve(360)
         f = f.union(crown_slope)
         return f
-    def sieve(self):
-        return CrownSieve.from_instance(self)
+    def sieve(self, mini_sieve: bool = False):
+        cs = CrownSieve.from_instance(self)
+        cs.mini_sieve = mini_sieve
+        cs.calc_vars()
+        return cs
 
 @dataclass
 class CrownSieve(CrownFloor):
+    #Less wide/tall version of sieve which can fit between PlantFloor to redistribute water
+    mini_sieve: bool = False
+    
     floor_h: float = 0
     sieve_hole_r: float = 1.75
     n_hole_per_row: int = 8
@@ -241,7 +247,7 @@ class CrownSieve(CrownFloor):
     
     def calc_vars(self):
         self.tower_id = self.tower_od - 2*self.wall_thick
-        self.sieve_od = self.tower_id - 6
+        self.sieve_od = self.tower_id - (6 if self.mini_sieve else 0)
         self.sieve_id = self.tower_od - 25
         self.sieve_h = (self.sieve_od - self.sieve_id)/2*tan(radians(self.crown_angle))
 

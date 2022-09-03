@@ -40,20 +40,22 @@ class Tower(StylishPart):
 
         return a
     def make(self):
-        alpha=0.7
+        alpha=1
 
         mf = MasonFloor.from_instance(base_floor)
         pf = PlantFloor.from_instance(base_floor)
         pf.show_netcup = True
         cf = CrownFloor.from_instance(base_floor)
+        mini_sieve = cf.sieve(mini_sieve=True)
+        sieve = cf.sieve()
         lf = LidFloor.from_instance(base_floor)
 
         tower = self.assemble_tower([
             AssembleFloor(mf, color=cq.Color(1,1,0,alpha), stl="stl/mason_floor.stl"),
             AssembleFloor(pf, color=cq.Color(0,1,0,alpha), stl="stl/plant_floor.stl"),
-            AssembleFloor(cf.sieve(), color=cq.Color(0,0.5,1,alpha), z_offset=2-cf.sieve().sieve_h),
+            AssembleFloor(mini_sieve, color=cq.Color(1,0.5,1,alpha), z_offset=3-mini_sieve.sieve_h, stl="stl/mini_sieve.stl"),
             AssembleFloor(pf, color=cq.Color(0,0,1,alpha), z_rot=180),
-            AssembleFloor(cf.sieve(), color=cq.Color(0.2,0.2,0.6,alpha), z_offset=0, stl="stl/sieve.stl"),
+            AssembleFloor(sieve, color=cq.Color(0.2,0.2,0.6,alpha), z_offset=0, stl="stl/sieve.stl"),
             AssembleFloor(cf, color=cq.Color(0,1,1,alpha), stl="stl/crown_floor.stl"),
             AssembleFloor(lf, color=cq.Color(0.5,0,1,alpha), stl="stl/lid.stl")
         ], explode_h=0)
