@@ -26,12 +26,14 @@ class BellSiphon(StylishPart):
     drain_h: float = 18 #Water level at which basin starts to draing
     
     basin_angle: float = 43
+    
+    siphon_slot_h: float = 5 #Height of slots at top of siphon to allow water in (yet support roof)
     n_siphon_slot: int = 4 #Number of slots at top of siphon to allow water in (yet support roof)
 
     bell_slot_h: float = 5 #Height of slots at bottom of bell to allow water in
     n_bell_slot: int = 6 #Number of slots at bottom of bell to allow water in
 
-    siphon_r: float = 4 #Radius of siphon tube
+    siphon_r: float = 5 #Radius of siphon tube
     
     siphon_funnel: bool = False
     siphon_funnel_h: float = 6
@@ -39,13 +41,13 @@ class BellSiphon(StylishPart):
     snorkel: bool = True
     snorkel_angle = 60
 
-    drain_hole: bool = False
-    drain_hole_r: float = 1
+    drain_hole: bool = True
+    drain_hole_r: float = 0.8
 
     def calc_vars(self):
         self.lock_top_offset: float = self.basin_h - 60 + 16 #Dist from top to top of lock nub
-        self.siphon_slot_h: float = 6 + math.tan(math.radians(90-self.basin_angle))*self.siphon_r*2 #Height of slots at top of siphon to allow water in (yet support roof)
-        self.siphon_h: float = self.drain_h + self.siphon_slot_h #Height of siphon tube
+        self.siphon_slot_slanted_h: float = self.siphon_slot_h + math.tan(math.radians(90-self.basin_angle))*self.siphon_r*2 #Calculated height of siphon slots once slant is included
+        self.siphon_h: float = self.drain_h + self.siphon_slot_slanted_h #Height of siphon tube
         self.siphon_funnel_top_r: float = self.siphon_r+2 if self.siphon_funnel else self.siphon_r
         self.bell_r = self.siphon_r * 2 #Radius of bell (2:1 ratio is important for bell siphon function, probably should not change this; read more here: https://www.ctahr.hawaii.edu/oc/freepubs/pdf/bio-10.pdf)
         self.bell_h = self.siphon_h - math.sqrt(self.bell_r**2 - self.siphon_funnel_top_r**2) #Dist between bell and top of siphon based on radius of each to prevent overlap during assembly
@@ -79,17 +81,14 @@ class BellSiphon(StylishPart):
                 .edges("|Z").fillet(self.wall_thick)
             )
 
-        if self.drain_hole:
-            basin = basin.faces("<Z").workplane().moveTo((self.bell_r - self.siphon_r) * 1.5 + self.siphon_offset).hole(2*self.drain_hole_r, self.wall_thick)
-
         #Create siphon (+basin)
         siphon = (
             #Create siphon tube outer contour
             basin.faces(">Z[-2]").workplane()
-            .cylinder(self.siphon_h-self.siphon_funnel_h-self.siphon_slot_h, self.siphon_r, centered=[1,1,0], combine=False)
+            .cylinder(self.siphon_h-self.siphon_funnel_h-self.siphon_slot_slanted_h, self.siphon_r, centered=[1,1,0], combine=False)
             .faces(">Z").workplane().circle(self.siphon_r)
             .workplane(self.siphon_funnel_h).circle(self.siphon_funnel_top_r)
-            .workplane(self.siphon_slot_h).circle(self.siphon_funnel_top_r).loft(ruled=1)
+            .workplane(self.siphon_slot_slanted_h).circle(self.siphon_funnel_top_r).loft(ruled=1)
             .faces("|Z").shell(-self.wall_thick)
         )
 
@@ -97,7 +96,7 @@ class BellSiphon(StylishPart):
         siphon_cutouts = (
             siphon.faces("<Z[-2]").workplane()
             .polarArray(self.siphon_funnel_top_r, 0, 360, self.n_siphon_slot)
-            .circle(self.siphon_funnel_top_r/2).extrude(-self.siphon_slot_h, combine=0)
+            .circle(self.siphon_funnel_top_r/2).extrude(-self.siphon_slot_slanted_h, combine=0)
         )
         if self.basin_angle != 90:
             siphon_cutouts = siphon_cutouts.cut(
@@ -178,6 +177,8 @@ class BellSiphon(StylishPart):
             #basin = basin.copyWorkplane(Workplane("YZ")).workplane(0, origin=(0,0,cutout_z_offset)).rect(cuthout_w, cutout_h, centered=[1,0]).cutBlind(-self.basin_r)
             basin = basin.copyWorkplane(Workplane("XY")).workplane(cutout_z_offset).polarArray(self.basin_r, 90 + (180-cutout_angle_range)/2, cutout_angle_range, cutout_slot_n).circle(self.wall_thick*2).cutBlind(cutout_h)
 
+        if self.drain_hole:
+            basin = basin.faces("<Z").workplane().moveTo((self.bell_r - self.siphon_r) * 1.5 + self.siphon_offset).hole(2*self.drain_hole_r, self.wall_thick)
 
         return basin.rotate((0,0,0), (0,0,1), 180)
 
@@ -188,10 +189,11 @@ class BellSiphon(StylishPart):
         a = a.add(bs.translate((self.basin_r,0,0)).rotate((0,0,0), (0,1,0), self.basin_angle-90).copyWorkplane(Workplane("XZ")).split(0,1))
         a = a.add(water_line, color=Color(0, 0, 1, 0.5))
         show_object(a)
+        return self
 
 if "show_object" in locals():
-    #BellSiphon(basin_angle=43, siphon_funnel=0).draw_water(water_h=24)
+    BellSiphon(basin_angle=43, siphon_funnel=0).draw_water(water_h=24).draw_water(water_h=34)
     #BellSiphon().display(show_object)
     BellSiphon().export("stl/bell_siphon.stl")
-    BellSiphon().display_split(show_object)
+    #BellSiphon().display_split(show_object)
     #show_object(Netcup().make().translate((0,0,40)))
