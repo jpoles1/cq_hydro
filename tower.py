@@ -33,7 +33,7 @@ class Tower(StylishPart):
                 loc=cq.Location(cq.Vector(0, 0, current_h+f.z_offset), cq.Vector(0, 0, 1), f.z_rot),
                 color= f.color
             )
-            current_h += floor.floor_h if hasattr(floor, "floor_h") else 0
+            current_h += floor.floor_h+explode_h if hasattr(floor, "floor_h") and floor.floor_h > 0 else 0
             #current_h += explode_h+f.z_offset
             
             if(f.stl != ""):
@@ -62,7 +62,7 @@ class Tower(StylishPart):
             AssembleFloor(sprinkler.part(), color=cq.Color(0.6,0.2,0.6,alpha), z_offset=15, stl="stl/sprinkler.stl"),
             AssembleFloor(cf, color=cq.Color(0,1,1,alpha), stl="stl/crown_floor.stl"),
             AssembleFloor(lf, color=cq.Color(0.5,0,1,alpha), stl="stl/lid.stl")
-        ], explode_h=0)
+        ], explode_h=20)
         return tower
 
 Tower().display_split(show_object).export("stl/tower.step").export_split("stl/tower_split.step")
