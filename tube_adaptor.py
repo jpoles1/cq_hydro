@@ -11,7 +11,7 @@ class TubeAdaptor(StylishPart):
     fdm_extrude_w: float = 0.5 #Extrusion width for FDM printers. Will attempt to make thing walls a multiple of this value 
     fdm_horiz_clearance: float = 0.2 #Clearance spacing between interfacing parts for FDM printers 
 
-    adaptor_h: float = 14
+    adaptor_h: float = 12
     adaptor_or: float = 8/2
 
     barb_angle: float = 35
@@ -21,7 +21,7 @@ class TubeAdaptor(StylishPart):
     def calc_vars(self):
         self.wall_thick = self.fdm_extrude_w * 3
         self.adaptor_ir = self.adaptor_or - self.wall_thick
-        self.barb_r = self.adaptor_or + self.fdm_extrude_w * 3
+        self.barb_r = self.adaptor_or + self.fdm_extrude_w * 2
     def make(self):
         part = (
             Workplane("XY").cylinder(self.adaptor_h, self.adaptor_or, centered=[1,1,0])
@@ -128,9 +128,8 @@ class TubeAdaptorY(StylishPart):
 
 
 if "show_object" in locals():
-    #TubeI(TubeAdaptor(), TubeAdaptor(adaptor_or=10/2)).display_split(show_object)
-    #TubeAdaptorI(TubeAdaptor(), TubeAdaptor()).display_split(show_object).export("stl/8to8mmAdaptor.stl")
-    TubeAdaptorY(TubeAdaptor(), TubeAdaptor(), TubeAdaptor()).display_split(show_object).export("stl/8mmYAdaptor.stl")
     #TubeAdaptor().display_split(show_object)
+    TubeAdaptorI(TubeAdaptor(), TubeAdaptor()).display_split(show_object).export("stl/8to8mmAdaptor.stl")
+    #TubeAdaptorY(TubeAdaptor(), TubeAdaptor(), TubeAdaptor()).display_split(show_object).export("stl/8mmYAdaptor.stl")
 
 
