@@ -65,6 +65,6 @@ class Tower(StylishPart):
         ], explode_h=0)
         return tower
 
-Tower().display_split(show_object)
+Tower().display_split(show_object).export("stl/tower.step").export_split("stl/tower_split.step")
 #show_object(Tower().part().section(cq.Plane.named("XZ")))
 #show_object(cq.Workplane("XY").add(Tower().part().toCompound()).cut(cq.Workplane("XY").box(200,200,200, centered=[0,1,1])))

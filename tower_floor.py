@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from math import sin, cos, tan, pi, degrees, radians
 import cadquery as cq
+from cadquery.selectors import *
+
 from locking_netcup import LockingNetcup
 from mason_thread import MasonThread
 from bell_siphon import BellSiphon
@@ -241,9 +243,11 @@ class CrownSieve(CrownFloor):
     mini_sieve: bool = False
     
     floor_h: float = 0
-    sieve_hole_r: float = 1.75
-    n_hole_per_row: int = 8
+    sieve_hole_r: float = 2
+    n_hole_per_row: int = 6
     sieve_thickess: float = 1.5
+
+    tubing_od = 12
     
     def calc_vars(self):
         self.tower_id = self.tower_od - 2*self.wall_thick
@@ -263,8 +267,12 @@ class CrownSieve(CrownFloor):
             [self.sieve_id/2-self.sieve_thickess*1.5,self.sieve_thickess],
             [0,self.sieve_thickess],
         ]).finalize().revolve(360)
-        s = s.faces("<Z[-2]").workplane().cylinder(10,16/2,centered=[1,1,0])
-        s = s.faces(">Z[-2]").circle(12.5/2).cutThruAll()
+        s = s.faces("<Z[-2]").workplane().cylinder(10,(self.tubing_od+6)/2,centered=[1,1,0])
+        s = s.faces(">Z[-2]").circle((self.tubing_od + 0.5)/2).cutThruAll()
+        s = s.edges(AndSelector(
+            StringSyntaxSelector("<Z"),
+            RadiusNthSelector(0)
+        )).chamfer(2)
 
         #s = s.faces("<Z").workplane().move(self.sieve_id/2-8, 0).circle(2).cutThruAll()
         s = s.faces("<Z").workplane().polarArray(self.sieve_id/2-6, 0, 360, 2*self.n_hole_per_row).circle(self.sieve_hole_r).cutThruAll()
@@ -332,5 +340,5 @@ if "show_object" in locals():
     #lid = LidFloor().make()
     PlantFloor(show_netcup=0).display(show_object)
     #MasonFloor().display(show_object)
-    #CrownFloor().sieve().display(show_object).export("stl/sieve.stl")
+    #CrownFloor().sieve().display_split(show_object).export("stl/sieve.stl")
     
