@@ -27,22 +27,22 @@ class BellSiphon(StylishPart):
     
     basin_angle: float = 43
     
-    siphon_slot_h: float = 5 #Height of slots at top of siphon to allow water in (yet support roof)
+    siphon_slot_h: float = 4 #Height of slots at top of siphon to allow water in (yet support roof)
     n_siphon_slot: int = 4 #Number of slots at top of siphon to allow water in (yet support roof)
 
-    bell_slot_h: float = 5 #Height of slots at bottom of bell to allow water in
+    bell_slot_h: float = 10 #Height of slots at bottom of bell to allow water in
     n_bell_slot: int = 6 #Number of slots at bottom of bell to allow water in
 
-    siphon_r: float = 5 #Radius of siphon tube
+    siphon_r: float = 4.5 #Radius of siphon tube
     
     siphon_funnel: bool = False
     siphon_funnel_h: float = 6
 
-    snorkel: bool = True
+    snorkel: bool = False
     snorkel_angle = 60
 
     drain_hole: bool = True
-    drain_hole_r: float = 0.8
+    drain_hole_r: float = 1
 
     def calc_vars(self):
         self.lock_top_offset: float = self.basin_h - 60 + 16 #Dist from top to top of lock nub
@@ -135,12 +135,12 @@ class BellSiphon(StylishPart):
 
         if self.snorkel:
             snorkel_opening_h = 2 #Water level at which snorkel bottom opens up = height/water level to stop siphoning
-            snorkel_r = 3 #snorkel pipe radius
+            snorkel_r = 3.5 #snorkel pipe radius
             snorkel_wall_thick = 1.5 #snorkel pipe wall thicness
             snorkel_h = self.bell_slot_h + snorkel_opening_h #Z-height at which snorkel opens to stop siphoning; derived from snorkel_opening_h
             snorkel_offset = self.bell_r + self.wall_thick + snorkel_r - 0.5 #X/Y offset of snorkel from bell wall
             snorkel_bell_entrance_h = self.siphon_h - self.bell_r  #Z-height at which snorkel enters bell
-            snorkel_slot_h = 4
+            snorkel_slot_h = 6
 
             
 
