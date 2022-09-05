@@ -19,7 +19,7 @@ class Floor(StylishPart):
     lip_thick: float = 3
     floor_h: float = 85
     joint_h: float = 14
-    n_locks: int = 4
+    n_locks: int = 3
     lock_nub_diam: float = 4
 
     def calc_vars(self):
@@ -35,19 +35,19 @@ class Floor(StylishPart):
 
         #Revolve around center
         for i in range(self.n_locks):
-            offset_angle = i * 360 / self.n_locks 
+            offset_angle = (i * 360 / self.n_locks) + (180 / self.n_locks)
             floor = floor.union(nub.rotate((0,0,0), (0,0,1), offset_angle))
         return floor
 
-    def lock_cutout_sketch(self, lock_h, h_track_w, h_track_h, v_track_w, v_track_h, h_slanted=1, v_slant_angle = 70):
+    def lock_cutout_sketch(self, lock_h, h_track_w, h_track_h, v_track_w, v_track_h, h_slanted=1, v_slant_angle = 45):
         #Sketch starts in top left corner of lock
         #Lock shape (like a sideways tetris Z)
         if h_slanted:
             h_slant_dist = 1.5
             return cq.Sketch().polygon([
                     [0,0],
-                    [v_track_w,0],
-                    [v_track_w+(v_track_h+0.25)/tan(radians(v_slant_angle)), -v_track_h-0.25],
+                    [v_track_w+2,0],
+                    [v_track_w+2+(v_track_h+0.25)/tan(radians(v_slant_angle)), -v_track_h-0.25],
                     [h_track_w,-h_slant_dist], #Adds slant
                     [h_track_w, -lock_h],
                     [h_track_w-v_track_w, -lock_h],
@@ -70,7 +70,7 @@ class Floor(StylishPart):
 
     def lock_cutout(self, floor):
         lock_h = self.joint_h
-        h_track_w = 20
+        h_track_w = 24
         h_track_h = self.lock_nub_diam + 1
         v_track_w = self.lock_nub_diam + 1.5
         v_track_h = (lock_h - h_track_h) / 2

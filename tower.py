@@ -41,7 +41,7 @@ class Tower(StylishPart):
 
         return a
     def make(self):
-        alpha=1
+        alpha=0.85
 
         mf = MasonFloor.from_instance(base_floor)
         pf1 = PlantFloor.from_instance(base_floor)
@@ -55,16 +55,16 @@ class Tower(StylishPart):
 
         tower = self.assemble_tower([
             AssembleFloor(mf, color=cq.Color(1,1,0,alpha), stl="stl/mason_floor.stl"),
-            AssembleFloor(pf1, color=cq.Color(0,1,0,alpha), stl="stl/plant_floor.stl"),
+            AssembleFloor(pf1, color=cq.Color(0,1,0,alpha), stl="stl/plant_floor.stl", z_rot=180),
             AssembleFloor(mini_sieve, color=cq.Color(1,0.5,1,alpha), z_offset=3-mini_sieve.sieve_h, stl="stl/mini_sieve.stl"),
-            AssembleFloor(pf2, color=cq.Color(0,0,1,alpha), z_rot=180),
+            AssembleFloor(pf2, color=cq.Color(0,0,1,alpha)),
             AssembleFloor(sieve, color=cq.Color(0.2,0.2,0.6,alpha), z_offset=0, stl="stl/sieve.stl"),
             AssembleFloor(sprinkler.part(), color=cq.Color(0.6,0.2,0.6,alpha), z_offset=15, stl="stl/sprinkler.stl"),
-            AssembleFloor(cf, color=cq.Color(0,1,1,alpha), stl="stl/crown_floor.stl"),
+            AssembleFloor(cf, color=cq.Color(0,1,1,alpha), stl="stl/crown_floor.stl", z_rot=180),
             AssembleFloor(lf, color=cq.Color(0.5,0,1,alpha), stl="stl/lid.stl")
-        ], explode_h=20)
+        ], explode_h=0)
         return tower
 
-Tower().display_split(show_object).export("stl/tower.step").export_split("stl/tower_split.step")
+Tower().display(show_object).export("stl/tower.step").export_split("stl/tower_split.step")
 #show_object(Tower().part().section(cq.Plane.named("XZ")))
 #show_object(cq.Workplane("XY").add(Tower().part().toCompound()).cut(cq.Workplane("XY").box(200,200,200, centered=[0,1,1])))
