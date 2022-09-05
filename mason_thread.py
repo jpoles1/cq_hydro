@@ -1,16 +1,20 @@
 import cadquery as cq
 from dataclasses import dataclass
 
+import sys
+sys.path.append("../cq_style")
+from cq_style import StylishPart
+
 @dataclass
-class MasonThread:
+class MasonThread(StylishPart):
 
     mason_thread_od: float = 82.4
     thread_pitch: float = 6.5
     thread_h: float = thread_pitch*2.5
     lid_h: float = thread_h + 2
     wall_thick: float = 2.5
-    thread_contour_diam: float =3
-    thread_contour_h: float =2.2
+    thread_contour_diam: float = 3.2
+    thread_contour_h: float = 2.2
     thread_r: float = mason_thread_od/2 + thread_contour_diam 
 
     def make(self, export_stl=0):
@@ -37,3 +41,7 @@ class MasonThread:
             cq.exporters.export(mason_thread, "stl/mason_thread.stl")
 
         return mason_thread
+
+if "show_object" in locals():
+    MasonThread().display(show_object)
+    #MasonThread().display_split(show_object)
