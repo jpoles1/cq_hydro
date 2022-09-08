@@ -22,6 +22,9 @@ class AssembleFloor:
 
 @dataclass
 class Tower(StylishPart):
+    show_tube: bool = True
+    tube_od: float = 12
+    tube_id: float = 10
     def assemble_tower(self, floors, explode_h=0):
         current_h = 0
         a = cq.Assembly()
@@ -38,7 +41,14 @@ class Tower(StylishPart):
             
             if(f.stl != ""):
                 cq.exporters.export(floor_body, f.stl)
-
+        if self.show_tube:
+            tube = (
+                cq.Workplane("XY")
+                .cylinder(current_h, self.tube_od/2, centered=[1,1,0])
+                .faces("|Z").shell(-(self.tube_od - self.tube_id)/2)
+                .translate((0,0,-30))
+            )
+            a = a.add(tube, color=cq.Color(0.9, 0.9, 0.9, 0.5))
         return a
     def make(self):
         alpha=0.85
@@ -65,6 +75,6 @@ class Tower(StylishPart):
         ], explode_h=0)
         return tower
 
-Tower().display(show_object).export("stl/tower.step").export_split("stl/tower_split.step")
+Tower().display_split(show_object).export("stl/tower.step").export_split("stl/tower_split.step")
 #show_object(Tower().part().section(cq.Plane.named("XZ")))
 #show_object(cq.Workplane("XY").add(Tower().part().toCompound()).cut(cq.Workplane("XY").box(200,200,200, centered=[0,1,1])))
