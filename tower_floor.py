@@ -300,7 +300,7 @@ class MasonFloor(Floor):
     lid_loft_h: float = 10
     thread_pitch: float = 6.5
     cable_w: float = 6.5
-    cable_h: float = 3
+    cable_h: float = 4
 
     def make(self):
         mason_thread = MasonThread(lid_h=18)
@@ -330,7 +330,19 @@ class MasonFloor(Floor):
         cable_hole_h = self.joint_h + self.cable_h
         #Create cutout for pump power cable
         m = m.cut(
-            cq.Workplane("XZ").workplane().center(0, self.floor_h-cable_hole_h).rect(self.cable_w, cable_hole_h, centered=(1,0)).extrude(self.tower_od).rotate((0,0,0), (0,0,1), 45)
+            cq.Workplane("XZ").workplane().center(0, self.floor_h-cable_hole_h)
+            .rect(self.cable_w, cable_hole_h, centered=(1,0)).extrude(-self.tower_od)
+            #.rotate((0,0,0), (0,0,1), 180)
+        )
+
+        cable_guard_top_cutoff = self.cable_h * 1.5
+
+        m = m.union(
+            m.faces(">Z").workplane(offset=-cable_guard_top_cutoff, origin=(0, self.tower_od/2-1))
+            .rect(self.cable_w, self.cable_h+4, centered=(1,0)).extrude(-cable_hole_h+cable_guard_top_cutoff, combine=False)
+            .edges("<Z and >Y").chamfer(self.cable_h+3.9)
+            .faces("<Y or >Z").shell(self.wall_thick)
+            #.rotate((0,0,0), (0,0,1), -45)
         )
 
         return m
@@ -338,7 +350,7 @@ class MasonFloor(Floor):
 if "show_object" in locals():
     #floor = CrownFloor().make()#.lock_cutout()#.make()
     #lid = LidFloor().make()
-    PlantFloor(show_netcup=0).display(show_object)
-    #MasonFloor().display(show_object)
+    #PlantFloor(show_netcup=0).display(show_object)
+    MasonFloor().display(show_object)
     #CrownFloor().sieve().display_split(show_object).export("stl/sieve.stl")
     
