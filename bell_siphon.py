@@ -14,8 +14,8 @@ from cq_style import StylishPart
 class BellSiphon(StylishPart):
     round_basin: bool = True #Create a cylindrical basin if true, otherwise rectangular w/ rounded corners
    
-    basin_h: float = 65 #Basin height
-    basin_r: float = 22 #Basin radius
+    basin_h: float = 75 #Basin height
+    basin_r: float = 22 - 0.2 #Basin radius
 
     add_lock_nubs: bool = True #Create locking nubs to slot into receiving part w/ cutouts
     n_locks: int = 2 #Number of locks/nubs
@@ -45,7 +45,7 @@ class BellSiphon(StylishPart):
     drain_hole_r: float = 1
 
     def calc_vars(self):
-        self.lock_top_offset: float = self.basin_h - 60 + 16 #Dist from top to top of lock nub
+        self.lock_top_offset: float = self.basin_h - 60 + 18 #Dist from top to top of lock nub
         self.siphon_slot_slanted_h: float = self.siphon_slot_h + math.tan(math.radians(90-self.basin_angle))*self.siphon_r*2 #Calculated height of siphon slots once slant is included
         self.siphon_h: float = self.drain_h + self.siphon_slot_slanted_h #Height of siphon tube
         self.siphon_funnel_top_r: float = self.siphon_r+2 if self.siphon_funnel else self.siphon_r
