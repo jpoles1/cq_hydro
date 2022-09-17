@@ -9,7 +9,7 @@ from cq_style import StylishPart
 class PumpAdaptor(StylishPart):
     wall_thick = 3 * 0.5
     tube_ir: float = (8+1)/2 
-    pump_adaptor_or: float = 11.5/2
+    pump_adaptor_or: float = 11.6/2
     
     pump_adaptor_h = 9.5
    
