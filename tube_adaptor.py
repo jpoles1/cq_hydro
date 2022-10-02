@@ -8,6 +8,7 @@ from cq_style import StylishPart
 
 @dataclass
 class TubeAdaptor(StylishPart):
+    wall_thick: float = 0 #
     fdm_extrude_w: float = 0.5 #Extrusion width for FDM printers. Will attempt to make thing walls a multiple of this value 
     fdm_horiz_clearance: float = 0.2 #Clearance spacing between interfacing parts for FDM printers 
 
@@ -17,9 +18,11 @@ class TubeAdaptor(StylishPart):
     barb_angle: float = 35
     n_barbs: int = 3
     barb_spacing: float = 1
+    
+    flip_part: bool = 0
 
     def calc_vars(self):
-        self.wall_thick = self.fdm_extrude_w * 3
+        self.wall_thick = self.wall_thick if self.wall_thick > 0 else self.fdm_extrude_w * 3
         self.adaptor_ir = self.adaptor_or - self.wall_thick
         self.barb_r = self.adaptor_or + self.fdm_extrude_w * 2
     def make(self):
@@ -38,6 +41,13 @@ class TubeAdaptor(StylishPart):
         barb = Workplane("XZ").placeSketch(barb_sketch).revolve(360)
         for i in range(self.n_barbs):
             part = part.union(barb.translate((0,0,i*(barb_h+self.barb_spacing))))
+
+        if self.flip_part:
+            part = (
+                part.translate(Vector(0,0,-self.adaptor_h))
+                .rotate(Vector(0,0,0), Vector(1,0,0), 180)
+            )
+
         return part
 
 @dataclass
@@ -50,6 +60,7 @@ class TubeAdaptorI(StylishPart):
         self.mid_r = max(self.adaptor1.adaptor_or, self.adaptor2.adaptor_or) + 2
 
     def make(self):
+        self.adaptor2.flip_part = 1
         return (
             Workplane("XY").cylinder(self.mid_h, self.mid_r)
             .cut(
@@ -60,13 +71,10 @@ class TubeAdaptorI(StylishPart):
             )
             .union(
                 self.adaptor1.part()
-                .translate(Vector(0,0,-self.adaptor1.adaptor_h))
-                .translate(Vector(0,0,-self.mid_h/2))
+                .translate(Vector(0,0,-self.adaptor1.adaptor_h-self.mid_h/2))
             )
             .union(
                 self.adaptor2.part()
-                .translate(Vector(0,0,-self.adaptor2.adaptor_h))
-                .rotate(Vector(0,0,0), Vector(1,0,0), 180)
                 .translate(Vector(0,0,self.mid_h/2))
             )
         )
@@ -88,6 +96,7 @@ class TubeAdaptorY(StylishPart):
         self.mid_h = 2*max(max(self.adaptor1.adaptor_or, self.adaptor2.adaptor_or), self.adaptor3.adaptor_or) - 2*self.wall_thick
 
     def make(self):
+        self.adaptor2.flip_part = 1
         return (
             Workplane("XZ").cylinder(self.mid_h, self.mid_r).shell(self.wall_thick)
             .union(
@@ -97,8 +106,6 @@ class TubeAdaptorY(StylishPart):
             )
             .union(
                 self.adaptor2.part()
-                .translate(Vector(0,0,-self.adaptor2.adaptor_h))
-                .rotate(Vector(0,0,0), Vector(0,1,0), 180)
                 .translate(Vector(0,0,self.mid_r))
                 .rotate((0,0,0),(0,1,0), -self.y_angle/2)
             )
@@ -128,8 +135,8 @@ class TubeAdaptorY(StylishPart):
 
 
 if "show_object" in locals():
-    #TubeAdaptor().display_split(show_object)
-    TubeAdaptorI(TubeAdaptor(), TubeAdaptor()).display_split(show_object).export("stl/8to8mmAdaptor.stl")
-    #TubeAdaptorY(TubeAdaptor(), TubeAdaptor(), TubeAdaptor()).display_split(show_object).export("stl/8mmYAdaptor.stl")
+    #TubeAdaptor(flip_part=1).display_split(show_object)
+    #TubeAdaptorI(TubeAdaptor(), TubeAdaptor()).display_split(show_object).export("stl/8to8mmAdaptor.stl")
+    TubeAdaptorY(TubeAdaptor(), TubeAdaptor(), TubeAdaptor()).display_split(show_object).export("stl/8mmYAdaptor.stl")
 
 
